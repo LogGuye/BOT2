@@ -2,18 +2,33 @@ const { Partials, EmbedBuilder, AuditLogEvent } = require('discord.js');
 const fs = require('fs');
 const CONFIG_FILE = './data/log_config.json';
 
+// Cấu hình mặc định gắn sẵn để không bị mất khi Render reset file
+const DEFAULT_CONFIG = {
+  "846255149596934158": {
+    "channelId": "1560290772983488644",
+    "member": true,
+    "role": true,
+    "voice": true,
+    "message": true
+  }
+};
+
 function getLogConfig() {
-  if (!fs.existsSync(CONFIG_FILE)) return {};
+  if (!fs.existsSync(CONFIG_FILE)) {
+    return DEFAULT_CONFIG;
+  }
   try {
-    return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+    const data = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+    if (Object.keys(data).length === 0) return DEFAULT_CONFIG;
+    return data;
   } catch (e) {
-    return {};
+    return DEFAULT_CONFIG;
   }
 }
 
 function sendLog(guild, type, embed) {
   const config = getLogConfig();
-  const guildConfig = config[guild.id];
+  const guildConfig = config[guild.id] || DEFAULT_CONFIG[guild.id];
   if (!guildConfig || !guildConfig.channelId) return;
   if (guildConfig[type] === false) return;
 
@@ -41,7 +56,7 @@ module.exports = {
         .setColor('#57F287')
         .setAuthor({ name: member.user.tag, iconURL: member.user.displayAvatarURL() })
         .setDescription(`📥 **Đã tham gia máy chủ**`)
-        .setFooter({ text: `${member.guild.name} •${newtoLocaleString()}` })
+        .setFooter({ text: `${member.guild.name} •${new Date().toLocaleString()}` })
         .setTimestamp();
       sendLog(member.guild, 'member', embed);
     });
@@ -51,6 +66,7 @@ module.exports = {
         .setColor('#ED4245')
         .setAuthor({ name: member.user.tag, iconURL: member.user.displayAvatarURL() })
         .setDescription(`📤 **Đã rời khỏi máy chủ**`)
+        .setFooter({ text: `${member.guild.name} •${new Date().toLocaleString()}` })
         .setTimestamp();
       sendLog(member.guild, 'member', embed);
     });
@@ -66,6 +82,7 @@ module.exports = {
           .setColor('#5865F2')
           .setAuthor({ name: user.tag, iconURL: user.displayAvatarURL() })
           .setDescription(`🔊 <@${user.id}> **đã vào kênh** \`${newState.channel.name}\`.`)
+          .setFooter({ text: `${guild.name} •${new Date().toLocaleString()}` })
           .setTimestamp();
         sendLog(guild, 'voice', embed);
       } 
@@ -75,12 +92,12 @@ module.exports = {
           .setColor('#ED4245')
           .setAuthor({ name: user.tag, iconURL: user.displayAvatarURL() })
           .setDescription(`🔇 <@${user.id}> **đã rời kênh** \`${oldState.channel.name}\`.`)
+          .setFooter({ text: `${guild.name} •${new Date().toLocaleString()}` })
           .setTimestamp();
         sendLog(guild, 'voice', embed);
       } 
       // Chuyển kênh hoặc bị ai đó kéo đi (Move members)
       else if (oldState.channelId && newState.channelId && oldState.channelId !== newState.channelId) {
-        // Kiểm tra xem có phải do người khác kéo đi không thông qua Audit Log
         const fetchedLogs = await guild.fetchAuditLogs({ limit: 1, type: AuditLogEvent.MemberMove });
         const moveLog = fetchedLogs.entries.first();
         
@@ -93,6 +110,7 @@ module.exports = {
           .setColor('#FEE75C')
           .setAuthor({ name: user.tag, iconURL: user.displayAvatarURL() })
           .setDescription(desc)
+          .setFooter({ text: `${guild.name} •${new Date().toLocaleString()}` })
           .setTimestamp();
         sendLog(guild, 'voice', embed);
       }
@@ -108,6 +126,7 @@ module.exports = {
         .setColor('#EB459E')
         .setAuthor({ name: executor.tag, iconURL: executor.displayAvatarURL?.() })
         .setDescription(`🛠️ **Đã cập nhật cài đặt máy chủ**`)
+        .setFooter({ text: `${newGuild.name} •${new Date().toLocaleString()}` })
         .setTimestamp();
       sendLog(newGuild, 'member', embed);
     });
@@ -128,6 +147,7 @@ module.exports = {
           .setAuthor({ name: executor.tag, iconURL: executor.displayAvatarURL?.() })
           .setDescription(`✍️ **Đã cấp vai trò cho** <@${newMember.id}>`)
           .addFields({ name: 'Vai trò:', value: roleNames })
+          .setFooter({ text: `${newMember.guild.name} •${new Date().toLocaleString()}` })
           .setTimestamp();
         sendLog(newMember.guild, 'role', embed);
       }
@@ -139,6 +159,7 @@ module.exports = {
           .setAuthor({ name: executor.tag, iconURL: executor.displayAvatarURL?.() })
           .setDescription(`✍️ **Đã tước vai trò của** <@${newMember.id}>`)
           .addFields({ name: 'Vai trò:', value: roleNames })
+          .setFooter({ text: `${newMember.guild.name} • ${new Date().toLocaleString()}` })
           .setTimestamp();
         sendLog(newMember.guild, 'role', embed);
       }
@@ -152,13 +173,14 @@ module.exports = {
         .setAuthor({ name: message.author.tag, iconURL: message.author.displayAvatarURL() })
         .setDescription(`🗑️ **Đã xóa tin nhắn của** <@${message.author.id}> trong kênh <#${message.channel.id}>.`)
         .addFields({ name: 'Nội dung đã xóa:', value: message.content || '[Không có nội dung văn bản / Hình ảnh]' })
+        .setFooter({ text: `${message.guild.name} • ${new Date().toLocaleString()}` })
         .setTimestamp();
       sendLog(message.guild, 'message', embed);
     });
 
     client.on('messageUpdate', (oldMessage, newMessage) => {
       if (oldMessage.author?.bot || !oldMessage.guild) return;
-      if (oldMessage.content === newMessage.content) return; // Bỏ qua nếu chỉ sửa embed/link preview
+      if (oldMessage.content === newMessage.content) return;
 
       const embed = new EmbedBuilder()
         .setColor('#FEE75C')
@@ -168,6 +190,7 @@ module.exports = {
           { name: 'Nội dung cũ:', value: oldMessage.content || '[Trống]' },
           { name: 'Nội dung mới:', value: newMessage.content || '[Trống]' }
         )
+        .setFooter({ text: `${oldMessage.guild.name} • ${new Date().toLocaleString()}` })
         .setTimestamp();
       sendLog(oldMessage.guild, 'message', embed);
     });

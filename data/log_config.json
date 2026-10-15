@@ -1,1 +1,9 @@
-{}
+{
+  "846255149596934158": {
+    "channelId": "1560290772983488644",
+    "member": true,
+    "role": true,
+    "voice": true,
+    "message": true
+  }
+}
