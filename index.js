@@ -36,7 +36,7 @@ const client = new Client({
   ]
 });
 
-// ✅ Xử lý Slash Commands cho cả Xì Dách và Music
+// ✅ Xử lý Slash Commands cho Xì Dách, Music và Log
 client.on('interactionCreate', async interaction => {
   if (!interaction.isCommand()) return;
   await xdach.execute(interaction);
@@ -75,13 +75,13 @@ client.once('ready', () => {
   console.log(`👉 m_ hoặc / để nói | b_join để vào voice | b_out để rời | b_help để xem lệnh`);
 });
 
-// ✅ Lệnh điều khiển bot voice và trợ giúp (prefix b_)
+// ✅ Gom chung toàn bộ xử lý prefix "b_" vào một sự kiện duy nhất để không bị xung đột TTS
 client.on('messageCreate', async (msg) => {
   if (msg.author.bot) return;
   if (!msg.content.startsWith('b_')) return;
 
   const lệnh = msg.content.slice(2).trim().toLowerCase();
-  const voiceChannel = msg.member.voice.channel;
+  const voiceChannel = msg.member?.voice.channel;
 
   if (lệnh === 'join') {
     if (!voiceChannel) return msg.reply('⚠️ Bạn cần vào kênh thoại trước!');
@@ -93,14 +93,14 @@ client.on('messageCreate', async (msg) => {
         guildId: msg.guild.id,
         adapterCreator: msg.guild.voiceAdapterCreator,
       });
-      msg.reply('✅ Bot đã vào kênh!');
+      return msg.reply('✅ Bot đã vào kênh!');
     } catch (err) {
       console.error('❌ Lỗi khi join:', err);
-      msg.reply('❌ Bot không thể vào kênh.');
+      return msg.reply('❌ Bot không thể vào kênh.');
     }
   }
 
-  // ✅ Bảng hướng dẫn đầy đủ (lệnh b_help)
+  // ✅ Giữ nguyên phần b_help cũ của bạn
   if (lệnh === 'help') {
     return msg.reply({
       content:
@@ -131,15 +131,13 @@ client.on('messageCreate', async (msg) => {
     if (kếtNốiVoice) {
       kếtNốiVoice.destroy();
       kếtNốiVoice = null;
-      msg.reply('👋 Bot đã rời khỏi kênh.');
+      return msg.reply('👋 Bot đã rời khỏi kênh.');
     } else {
-      msg.reply('⚠️ Bot không ở trong kênh.');
+      return msg.reply('⚠️ Bot không ở trong kênh.');
     }
   }
-});
 
-// ✅ Lệnh nói bằng TTS
-client.on('messageCreate', async (msg) => {
+  // ✅ Xử lý lệnh nói bằng TTS (b_ [nội dung])
   // Chặn spam ký tự lặp vô nghĩa
   const isSpam = (text) => {
     const cleaned = text.replace(/\s/g, '');
@@ -149,20 +147,14 @@ client.on('messageCreate', async (msg) => {
     return false;
   };
 
-  if (isSpam(msg.content)) return;
-  if (msg.author.bot) return;
-  if (!msg.content.startsWith('b_')) return;
-
   let vănBản = msg.content.slice(2).trim();
   if (!vănBản) return msg.reply('❗ Bạn chưa nhập nội dung cần nói.');
+  if (isSpam(vănBản)) return;
 
   vănBản = thayVietTat(vănBản);
   vănBản = phânTíchCảmXúc(vănBản);
 
-  const thànhViên = msg.member;
-  const voiceChannel = thànhViên.voice.channel;
   if (!voiceChannel) return msg.reply('⚠️ Bạn cần vào kênh thoại trước.');
-
   voiceChannelID = voiceChannel.id;
 
   hangDoi.push({
@@ -225,7 +217,9 @@ async function xửLýHàngĐợi() {
   }
 }
 
+// Khởi chạy hệ thống log sự kiện
 logEvent.execute(client);
+
 // Đăng nhập bot bằng Biến môi trường trên Render (hoặc token trong data/config.json nếu test local)
 const botToken = process.env.DISCORD_TOKEN || require('./data/config.json').token;
 client.login(botToken);
