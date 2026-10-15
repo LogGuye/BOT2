@@ -1,7 +1,7 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const fs = require('fs');
 
-const DATA_FILE = 'xidach_data.json';
+const DATA_FILE = './data/xidach_data.json';
 const START_COIN = 1000;
 
 let data = fs.existsSync(DATA_FILE)

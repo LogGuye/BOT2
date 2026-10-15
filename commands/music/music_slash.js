@@ -1,7 +1,7 @@
 const { SlashCommandBuilder } = require('discord.js');
 const fs = require('fs');
 
-const FILE_NAME = 'music_data.json';
+const FILE_NAME = './data/music_data.json';
 
 // Tải dữ liệu nếu đã có
 let musicData = fs.existsSync(FILE_NAME)

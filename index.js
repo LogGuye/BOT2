@@ -3,6 +3,7 @@ const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerSta
 const googleTTS = require('google-tts-api');
 const fs = require('fs');
 const express = require('express'); // ✅ Thêm Express để làm Web Server cho Render
+const logCmd = require('./commands/log/log_slash.js');
 
 // Khởi tạo web server để Render và UptimeRobot giữ bot luôn thức 24/7
 const app = express();
@@ -16,28 +17,34 @@ app.listen(PORT, () => {
   console.log(`Web server đang chạy trên cổng ${PORT}`);
 });
 
-// Đọc danh sách viết tắt từ file
-const danhSachVietTat = JSON.parse(fs.readFileSync('viettat.json', 'utf8'));
+// Đọc danh sách viết tắt từ thư mục data
+const danhSachVietTat = JSON.parse(fs.readFileSync('./data/viettat.json', 'utf8'));
 
-// Gọi các module slash command
-const xdach = require('./xidach_slash.js');
-const music = require('./music_slash.js');
+// Gọi các module slash command từ thư mục commands
+const xdach = require('./commands/xidach/xidach_slash.js');
+const music = require('./commands/music/music_slash.js');
+const logEvent = require('./events/log.js');
 
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
-    GatewayIntentBits.GuildVoiceStates
+    GatewayIntentBits.GuildVoiceStates,
+    GatewayIntentBits.GuildMembers,      // Bắt buộc cho sự kiện thành viên và role
+    GatewayIntentBits.GuildModeration
   ]
 });
 
+// ✅ Xử lý Slash Commands cho cả Xì Dách và Music
 client.on('interactionCreate', async interaction => {
   if (!interaction.isCommand()) return;
   await xdach.execute(interaction);
   await music.execute(interaction);
+  await logCmd.execute(interaction);
 });
 
+// 🔧 Thay thế từ viết tắt từ file JSON
 function thayVietTat(vănBản) {
   const từ = vănBản.split(/\s+/).map(t => {
     const từThường = t.toLowerCase();
@@ -46,6 +53,7 @@ function thayVietTat(vănBản) {
   return từ.join(' ');
 }
 
+// 🔧 Phân tích biểu cảm
 function phânTíchCảmXúc(vănBản) {
   return vănBản
     .replace(/(:\)+|=\)+)/g, 'mặt cười')
@@ -56,6 +64,7 @@ function phânTíchCảmXúc(vănBản) {
     .replace(/:D/g, 'hahahahaha');
 }
 
+// ✅ Biến toàn cục
 let hangDoi = [];
 let dangNoi = false;
 let kếtNốiVoice = null;
@@ -63,8 +72,10 @@ let voiceChannelID = null;
 
 client.once('ready', () => {
   console.log(`✅ Bot đăng nhập với tên ${client.user.tag}`);
+  console.log(`👉 m_ hoặc / để nói | b_join để vào voice | b_out để rời | b_help để xem lệnh`);
 });
 
+// ✅ Lệnh điều khiển bot voice và trợ giúp (prefix b_)
 client.on('messageCreate', async (msg) => {
   if (msg.author.bot) return;
   if (!msg.content.startsWith('b_')) return;
@@ -89,14 +100,29 @@ client.on('messageCreate', async (msg) => {
     }
   }
 
+  // ✅ Bảng hướng dẫn đầy đủ (lệnh b_help)
   if (lệnh === 'help') {
     return msg.reply({
       content:
         `📘 **DANH SÁCH LỆNH BOT**\n\n` +
         `🎙️ **Hỗ trợ giọng nói (TTS)**:\n` +
-        `• \`/ [nội dung]\` – Bot sẽ đọc to văn bản bạn nhập\n` +
+        `• \`b_ [nội dung]\` – Bot sẽ đọc to văn bản bạn nhập\n` +
         `• \`b_join\` – Bot tham gia kênh voice của bạn\n` +
-        `• \`b_out\` – Bot rời khỏi kênh voice`,
+        `• \`b_out\` – Bot rời khỏi kênh voice\n\n` +
+
+        `🃏 **Xì Dách (Slash Command)**:\n` +
+        `• \`/xd_start [coin]\`, \`/xd_join\`, \`/xd_deal\`, \`/xd_hit\`, \`/xd_stand\`, ...\n` +
+        `• \`/xd_baicuatoi\`, \`/xd_check\`, \`/xd_done\`, \`/xd_coin\`, \`/xd_top\`\n` +
+        `• \`/xd_reset\`, \`/xd_setcoin\`, \`/xd_luat\`, \`/xd_lenh\`\n` +
+        `• \`/xd_startbot [coin]\` – Chơi solo với BOT\n\n` +
+
+        `🎵 **Nhạc (Slash Command)**:\n` +
+        `• \`/save [note] [link]\` – Lưu một link nhạc cá nhân\n` +
+        `• \`/list\` – Xem danh sách các link nhạc bạn đã lưu\n\n` +
+
+        `💡 **Gợi ý**:\n` +
+        `• Bạn nên dùng lệnh slash bằng dấu \`/\` để tự động gợi ý trong Discord.\n` +
+        `• Các lệnh prefix \`b_\` dùng cho điều khiển voice và trợ giúp.`,
       ephemeral: false
     });
   }
@@ -112,7 +138,9 @@ client.on('messageCreate', async (msg) => {
   }
 });
 
+// ✅ Lệnh nói bằng TTS
 client.on('messageCreate', async (msg) => {
+  // Chặn spam ký tự lặp vô nghĩa
   const isSpam = (text) => {
     const cleaned = text.replace(/\s/g, '');
     if (/^(.)\1{4,}$/.test(cleaned)) return true;
@@ -123,7 +151,7 @@ client.on('messageCreate', async (msg) => {
 
   if (isSpam(msg.content)) return;
   if (msg.author.bot) return;
-  if (!msg.content.startsWith('/')) return;
+  if (!msg.content.startsWith('b_')) return;
 
   let vănBản = msg.content.slice(2).trim();
   if (!vănBản) return msg.reply('❗ Bạn chưa nhập nội dung cần nói.');
@@ -148,6 +176,7 @@ client.on('messageCreate', async (msg) => {
   }
 });
 
+// ✅ Xử lý hàng đợi nói TTS
 async function xửLýHàngĐợi() {
   if (hangDoi.length === 0) return;
 
@@ -168,6 +197,7 @@ async function xửLýHàngĐợi() {
         const người = channel.members.filter(m => !m.user.bot).size;
 
         if (người === 0) {
+          console.log('👋 Không còn ai trong kênh. Bot rời kênh.');
           kếtNốiVoice.destroy();
           kếtNốiVoice = null;
           clearInterval(kiểmTraNgười);
@@ -182,8 +212,8 @@ async function xửLýHàngĐợi() {
     kếtNốiVoice.subscribe(trìnhPhát);
     trìnhPhát.play(âmThanh);
 
-    trìnhPhatz = trìnhPhát;
     trìnhPhát.on(AudioPlayerStatus.Idle, () => {
+      console.log(`✅ Nói xong: ${lệnh.vănBản}`);
       dangNoi = false;
       xửLýHàngĐợi();
     });
@@ -195,6 +225,7 @@ async function xửLýHàngĐợi() {
   }
 }
 
-// Đăng nhập bot bằng Biến môi trường trên Render (hoặc token trong config nếu test local)
-const botToken = process.env.DISCORD_TOKEN || require('./config.json').token;
+logEvent.execute(client);
+// Đăng nhập bot bằng Biến môi trường trên Render (hoặc token trong data/config.json nếu test local)
+const botToken = process.env.DISCORD_TOKEN || require('./data/config.json').token;
 client.login(botToken);

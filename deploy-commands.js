@@ -1,13 +1,15 @@
 const { REST, Routes } = require('discord.js');
 const { clientId, guildIds, token } = require('./config.json');
 
-const xdach = require('./xidach_slash.js');
-const music = require('./music_slash.js'); // ✅ Thêm dòng này
+const xdach = require('./commands/xidach/xidach_slash.js');
+const music = require('./commands/music/music_slash.js');
+const logCmd = require('./commands/log/log_slash.js');
 
 // Gộp lệnh từ cả 2 file lại
 const commands = [
   ...xdach.data.map(cmd => cmd.toJSON()),
-  ...music.data.map(cmd => cmd.toJSON()) // ✅ Thêm dòng này
+  ...music.data.map(cmd => cmd.toJSON()),
+  ...logCmd.data.map(cmd => cmd.toJSON())
 ];
 
 const rest = new REST({ version: '10' }).setToken(token);
