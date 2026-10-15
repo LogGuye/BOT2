@@ -109,17 +109,14 @@ client.on('messageCreate', async (msg) => {
         `• \`b_ [nội dung]\` – Bot sẽ đọc to văn bản bạn nhập\n` +
         `• \`b_join\` – Bot tham gia kênh voice của bạn\n` +
         `• \`b_out\` – Bot rời khỏi kênh voice\n\n` +
-
         `🃏 **Xì Dách (Slash Command)**:\n` +
         `• \`/xd_start [coin]\`, \`/xd_join\`, \`/xd_deal\`, \`/xd_hit\`, \`/xd_stand\`, ...\n` +
         `• \`/xd_baicuatoi\`, \`/xd_check\`, \`/xd_done\`, \`/xd_coin\`, \`/xd_top\`\n` +
         `• \`/xd_reset\`, \`/xd_setcoin\`, \`/xd_luat\`, \`/xd_lenh\`\n` +
         `• \`/xd_startbot [coin]\` – Chơi solo với BOT\n\n` +
-
         `🎵 **Nhạc (Slash Command)**:\n` +
         `• \`/save [note] [link]\` – Lưu một link nhạc cá nhân\n` +
         `• \`/list\` – Xem danh sách các link nhạc bạn đã lưu\n\n` +
-
         `💡 **Gợi ý**:\n` +
         `• Bạn nên dùng lệnh slash bằng dấu \`/\` để tự động gợi ý trong Discord.\n` +
         `• Các lệnh prefix \`b_\` dùng cho điều khiển voice và trợ giúp.`,
