@@ -33,14 +33,20 @@ module.exports = {
       const run = await apifyClient.actor("solidcode/erome-scraper-video-downloader").call(input);
       const { items } = await apifyClient.dataset(run.defaultDatasetId).listItems();
 
-      const imageItems = items.filter(item => item.url && (item.url.endsWith('.jpg') || item.url.endsWith('.png') || item.url.includes('image')));
+      if (!items || items.length === 0) {
+        return interaction.editReply('❌ Không tìm thấy dữ liệu nào trong album!');
+      }
 
-      if (!imageItems || imageItems.length === 0) {
+      // Lọc các item có chứa đường dẫn URL hợp lệ
+      const validMedia = items.filter(item => item.url || item.imageUrl || item.image);
+
+      if (validMedia.length === 0) {
         return interaction.editReply('❌ Không tìm thấy bức ảnh nào trong album!');
       }
 
-      const randomMedia = imageItems[Math.floor(Math.random() * imageItems.length)];
-      const imageUrl = randomMedia.url || randomMedia.image;
+      // Lấy ngẫu nhiên 1 item từ kết quả
+      const randomMedia = validMedia[Math.floor(Math.random() * validMedia.length)];
+      const imageUrl = randomMedia.url || randomMedia.imageUrl || randomMedia.image;
 
       const embed = new EmbedBuilder()
         .setColor('#5865F2')
