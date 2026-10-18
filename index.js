@@ -4,7 +4,7 @@ const googleTTS = require('google-tts-api');
 const fs = require('fs');
 const express = require('express'); // ✅ Thêm Express để làm Web Server cho Render
 const logCmd = require('./commands/log/log_slash.js');
-const anhCmd = require('./commands/anh.js'); // ✅ Thêm module lệnh /anh
+const anhCmd = require('./commands/picture/anh.js');
 
 // Khởi tạo web server để Render và UptimeRobot giữ bot luôn thức 24/7
 const app = express();
