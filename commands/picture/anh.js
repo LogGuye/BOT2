@@ -6,7 +6,7 @@ const apifyClient = new ApifyClient({
 });
 
 const DEFAULT_ALBUMS = [
-  "https://www.erome.com/a/U3CyGACn", // Link album mẫu
+  "https://www.erome.com/a/U3CyGACn",
 ];
 
 module.exports = {
@@ -15,7 +15,6 @@ module.exports = {
     .setDescription('Lấy ngẫu nhiên một bức ảnh từ album'),
 
   async execute(interaction) {
-    // ⚡ PHẢI GỌI NGAY LẬP TỨC để chống lỗi 3 giây của Discord
     await interaction.deferReply();
 
     try {
@@ -29,38 +28,35 @@ module.exports = {
         "maxAlbumsPerProfile": 50
       };
 
-      // Gọi Apify Actor cào dữ liệu
       const run = await apifyClient.actor("solidcode/erome-scraper-video-downloader").call(input);
       const { items } = await apifyClient.dataset(run.defaultDatasetId).listItems();
+
+      // 🔍 In toàn bộ dữ liệu thô ra màn hình console/log của Render để xem cấu trúc thực tế
+      console.log('📦 CẤU TRÚC DỮ LIỆU TỪ APIFY:', JSON.stringify(items, null, 2));
 
       if (!items || items.length === 0) {
         return interaction.editReply('❌ Không tìm thấy dữ liệu nào trong album!');
       }
 
-      // Lọc các item có chứa đường dẫn URL hợp lệ
-      const validMedia = items.filter(item => item.url || item.imageUrl || item.image);
+      // Tạm thời lấy trực tiếp phần tử đầu tiên để ép gửi lên test
+      const firstItem = items[0];
+      const imageUrl = firstItem.url || firstItem.link || firstItem.src || firstItem.image || (firstItem.images && firstItem.images[0]);
 
-      if (validMedia.length === 0) {
-        return interaction.editReply('❌ Không tìm thấy bức ảnh nào trong album!');
+      if (!imageUrl) {
+        return interaction.editReply('❌ Đã tìm thấy dữ liệu nhưng không đọc được đường dẫn ảnh. Hãy xem log trên Render.');
       }
-
-      // Lấy ngẫu nhiên 1 item từ kết quả
-      const randomMedia = validMedia[Math.floor(Math.random() * validMedia.length)];
-      const imageUrl = randomMedia.url || randomMedia.imageUrl || randomMedia.image;
 
       const embed = new EmbedBuilder()
         .setColor('#5865F2')
-        .setTitle('🖼️ Ảnh ngẫu nhiên')
+        .setTitle('🖼️ Ảnh ngẫu nhiên (Debug)')
         .setImage(imageUrl)
         .setFooter({ text: `Yêu cầu bởi ${interaction.user.tag}` })
         .setTimestamp();
 
-      // Dùng editReply thay vì reply vì đã deferReply ở trên
       await interaction.editReply({ embeds: [embed] });
 
     } catch (error) {
       console.error('Lỗi khi gọi Apify API:', error);
-      // Dùng editReply để báo lỗi nếu quá trình cào dữ liệu gặp trục trặc
       await interaction.editReply('❌ Đã xảy ra lỗi khi kết nối tới dịch vụ cào dữ liệu.');
     }
   },
