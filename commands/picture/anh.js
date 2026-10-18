@@ -6,7 +6,10 @@ const apifyClient = new ApifyClient({
 });
 
 const DEFAULT_ALBUMS = [
-  "http://vietdam.rest/tags/ary/", // Link album mẫu
+  "http://vietdam.rest/tags/ary/",
+  "https://vietdam.rest/threads/minhie-aryminh-onlyfans-leak-phan-10.7286/",
+  "https://vietdam.rest/threads/minhie-aryminh-onlyfans-leak-phan-9.7285/",
+   // Link album mẫu
 ];
 
 module.exports = {
