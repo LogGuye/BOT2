@@ -6,7 +6,7 @@ const apifyClient = new ApifyClient({
 });
 
 const DEFAULT_ALBUMS = [
-  "https://www.erome.com/a/U3CyGACn", // Link album mẫu
+  "http://vietdam.rest/tags/ary/", // Link album mẫu
 ];
 
 module.exports = {
