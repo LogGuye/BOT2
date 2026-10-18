@@ -6,7 +6,7 @@ const apifyClient = new ApifyClient({
 });
 
 const DEFAULT_ALBUMS = [
-  "https://www.erome.com/a/U3CyGACn",
+  "https://www.erome.com/a/U3CyGACn", // Link album mẫu
 ];
 
 module.exports = {
@@ -15,6 +15,7 @@ module.exports = {
     .setDescription('Lấy ngẫu nhiên một bức ảnh từ album'),
 
   async execute(interaction) {
+    // Phản hồi chờ để chống lỗi 3 giây của Discord
     await interaction.deferReply();
 
     try {
@@ -28,29 +29,31 @@ module.exports = {
         "maxAlbumsPerProfile": 50
       };
 
+      // Gọi Apify Actor cào dữ liệu
       const run = await apifyClient.actor("solidcode/erome-scraper-video-downloader").call(input);
       const { items } = await apifyClient.dataset(run.defaultDatasetId).listItems();
-
-      // 🔍 In toàn bộ dữ liệu thô ra màn hình console/log của Render để xem cấu trúc thực tế
-      console.log('📦 CẤU TRÚC DỮ LIỆU TỪ APIFY:', JSON.stringify(items, null, 2));
 
       if (!items || items.length === 0) {
         return interaction.editReply('❌ Không tìm thấy dữ liệu nào trong album!');
       }
 
-      // Tạm thời lấy trực tiếp phần tử đầu tiên để ép gửi lên test
-      const firstItem = items[0];
-      const imageUrl = firstItem.url || firstItem.link || firstItem.src || firstItem.image || (firstItem.images && firstItem.images[0]);
+      // Lọc chính xác các mục có type là 'image' và có 'mediaUrl'
+      const imageItems = items.filter(item => item.type === 'image' && item.mediaUrl);
 
-      if (!imageUrl) {
-        return interaction.editReply('❌ Đã tìm thấy dữ liệu nhưng không đọc được đường dẫn ảnh. Hãy xem log trên Render.');
+      if (imageItems.length === 0) {
+        return interaction.editReply('❌ Không tìm thấy bức ảnh nào trong album này!');
       }
 
+      // Chọn ngẫu nhiên 1 bức ảnh từ danh sách lọc được
+      const randomImageItem = imageItems[Math.floor(Math.random() * imageItems.length)];
+      const imageUrl = randomImageItem.mediaUrl;
+
+      // Tạo khung Embed gửi lên Discord
       const embed = new EmbedBuilder()
         .setColor('#5865F2')
-        .setTitle('🖼️ Ảnh ngẫu nhiên (Debug)')
+        .setTitle('🖼️ Ảnh ngẫu nhiên từ Album')
         .setImage(imageUrl)
-        .setFooter({ text: `Yêu cầu bởi ${interaction.user.tag}` })
+        .setFooter({ text: `Yêu cầu bởi ${interaction.user.tag} • Album: ${randomImageItem.albumTitle || 'Erome'}` })
         .setTimestamp();
 
       await interaction.editReply({ embeds: [embed] });
