@@ -4,6 +4,7 @@ const googleTTS = require('google-tts-api');
 const fs = require('fs');
 const express = require('express'); // ✅ Thêm Express để làm Web Server cho Render
 const logCmd = require('./commands/log/log_slash.js');
+const anhCmd = require('./commands/anh.js'); // ✅ Thêm module lệnh /anh
 
 // Khởi tạo web server để Render và UptimeRobot giữ bot luôn thức 24/7
 const app = express();
@@ -36,12 +37,17 @@ const client = new Client({
   ]
 });
 
-// ✅ Xử lý Slash Commands cho Xì Dách, Music và Log
+// ✅ Xử lý Slash Commands cho Xì Dách, Music, Log và Ảnh ngẫu nhiên
 client.on('interactionCreate', async interaction => {
   if (!interaction.isCommand()) return;
   await xdach.execute(interaction);
   await music.execute(interaction);
   await logCmd.execute(interaction);
+
+  // ✅ Thêm điều kiện bắt lệnh /anh
+  if (interaction.commandName === 'anh') {
+    await anhCmd.execute(interaction);
+  }
 });
 
 // 🔧 Thay thế từ viết tắt từ file JSON
@@ -80,7 +86,8 @@ client.on('messageCreate', async (msg) => {
   if (msg.author.bot) return;
   if (!msg.content.startsWith('b_')) return;
 
-  const lệnh = msg.content.slice(2).trim().toLowerCase();
+  const args = msg.content.slice(2).trim().split(/ +/);
+  const lệnh = args.shift().toLowerCase();
   const voiceChannel = msg.member?.voice.channel;
 
   if (lệnh === 'join') {
@@ -138,6 +145,13 @@ client.on('messageCreate', async (msg) => {
   }
 
   // ✅ Xử lý lệnh nói bằng TTS (b_ [nội dung])
+  let vănBản = args.join(' ').trim();
+  if (!vănBản && msg.content.length > 2) {
+    vănBản = msg.content.slice(2).trim();
+  }
+  
+  if (!vănBản) return msg.reply('❗ Bạn chưa nhập nội dung cần nói.');
+
   // Chặn spam ký tự lặp vô nghĩa
   const isSpam = (text) => {
     const cleaned = text.replace(/\s/g, '');
@@ -147,8 +161,6 @@ client.on('messageCreate', async (msg) => {
     return false;
   };
 
-  let vănBản = msg.content.slice(2).trim();
-  if (!vănBản) return msg.reply('❗ Bạn chưa nhập nội dung cần nói.');
   if (isSpam(vănBản)) return;
 
   vănBản = thayVietTat(vănBản);
